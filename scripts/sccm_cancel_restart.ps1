@@ -1,4 +1,3 @@
-#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     Removes pending system restart flags set by SCCM and Windows Update.
@@ -7,8 +6,18 @@
     state, cancels any scheduled shutdown, and restarts the SCCM client service.
 .NOTES
     Must be run as Administrator.
-    Reference: Internal doc "Stop Auto Reboot" (Jay Littlefield / Scott Simmons)
 #>
+
+# ── 0. Check Run as Administrator ──────────────────────────────────
+function Test-Admin {
+    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $pr = New-Object System.Security.Principal.WindowsPrincipal($id)
+    return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+if (-not (Test-Admin)) {
+    Write-Warning "  ⚠️ This script must be run as Administrator. Aborting." 'ERROR'
+    exit 1
+}
 
 # ── 1. Check current pending reboot status ──────────────────────────────────
 Write-Host "=== Checking current pending reboot status ===" -ForegroundColor Cyan
