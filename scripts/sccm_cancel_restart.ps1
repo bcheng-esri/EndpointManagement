@@ -17,8 +17,7 @@ function Test-Admin {
 }
 if (-not (Test-Admin)) {
     Write-Warning "  ⚠️ This script must be run as Administrator. Aborting."
-    Read-Host -Prompt "Press Enter to exit"
-    exit 1
+    exit
 } else {
     Write-Host "  Script elevated" -ForegroundColor DarkGray
 }
@@ -135,4 +134,3 @@ try {
 }
 
 Write-Host "`nDone." -ForegroundColor Cyan
-Read-Host -Prompt "Press Enter to exit"
