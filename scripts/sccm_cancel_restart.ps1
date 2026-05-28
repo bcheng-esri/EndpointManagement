@@ -8,15 +8,18 @@
     Must be run as Administrator.
 #>
 
-# ── 0. Check Run as Administrator ──────────────────────────────────
+# ── 0. Check Run as Administrator ───────────────────────────────────────────
+Write-Host "=== Checking if script executed as administrator ===" -ForegroundColor Cyan
 function Test-Admin {
     $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     $pr = New-Object System.Security.Principal.WindowsPrincipal($id)
     return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 if (-not (Test-Admin)) {
-    Write-Warning "  ⚠️ This script must be run as Administrator. Aborting." 'ERROR'
+    Write-Warning "  ⚠️ This script must be run as Administrator. Aborting."
     exit 1
+} else {
+    Write-Host "  Script elevated" -ForegroundColor DarkGray
 }
 
 # ── 1. Check current pending reboot status ──────────────────────────────────
