@@ -122,3 +122,4 @@ try {
 }
 
 Write-Host "`nDone." -ForegroundColor Cyan
+Read-Host -Prompt "Press Enter to exit"
