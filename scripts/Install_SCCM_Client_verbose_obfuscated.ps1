@@ -18,10 +18,10 @@
 
 	Changelog:
 	----------
-	03-04-2024 - v1.0 - The Creation date of this script
-	06-04-2026 - v2.0 - Added verification checks for domain join and vaid ConfigMgr computer certificate
-					  - Added download and copy of ccmsetup.exe from internet and local SCCM servers
-					  - Obfuscated sensitive information
+	03-04-2024 - v1.0  The Creation date of this script
+	06-04-2026 - v2.0  Added verification checks for domain join and vaid ConfigMgr computer certificate
+					   Added download and copy of ccmsetup.exe from internet and local SCCM servers
+					   Obfuscated sensitive information
 
 .LINK
 	
