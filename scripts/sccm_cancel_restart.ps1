@@ -1,15 +1,33 @@
 <#
 .SYNOPSIS
-    Removes pending system restart flags set by SCCM and Windows Update.
-.DESCRIPTION
-    Clears all registry keys and WMI flags that trigger SCCM's pending reboot
-    state, cancels any scheduled shutdown, and restarts the SCCM client service.
-.NOTES
-    Must be run as Administrator.
-#>
+	This script is used to install the Esri SCCM client.
 
-# ── 0. Check Run as Administrator ───────────────────────────────────────────
-Write-Host "=== Checking if script executed as administrator ===" -ForegroundColor Cyan
+.DESCRIPTION
+	This script will check if the device is on the internal or internet network.
+
+.PARAMETER
+
+.EXAMPLE
+
+.NOTES
+	Created on:   03-04-2024
+	Modified:     06-04-2026
+	Author:       Brian Cheng
+	Version:      2.0
+	Mail:         
+
+	Changelog:
+	----------
+	03-04-2024 - v1.0 - The Creation date of this script
+	06-04-2026 - v2.0 - Added verification checks for domain join and vaid ConfigMgr computer certificate
+					  - Added download and copy of ccmsetup.exe from internet and local SCCM servers
+					  - Obfuscated sensitive information
+
+.LINK
+	
+#>
+#Execute script as administrator
+Write-Host "=== Checking if script executed as administrator ==="
 function Test-Admin {
     $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
     $pr = New-Object System.Security.Principal.WindowsPrincipal($id)
@@ -22,115 +40,153 @@ if (-not (Test-Admin)) {
     Write-Host "  Script elevated" -ForegroundColor DarkGray
 }
 
-# ── 1. Check current pending reboot status ──────────────────────────────────
-Write-Host "=== Checking current pending reboot status ===" -ForegroundColor Cyan
-try {
-    $rebootStatus = Invoke-CimMethod -Namespace root/ccm/ClientSDK `
-                        -ClassName CCM_ClientUtilities `
-                        -MethodName DetermineIfRebootPending -ErrorAction Stop
-    Write-Host "  RebootPending        : $($rebootStatus.RebootPending)"
-    Write-Host "  IsHardRebootPending  : $($rebootStatus.IsHardRebootPending)"
-} catch {
-    Write-Warning "  Could not query SCCM Client SDK (client may not be installed): $_"
+$ProgressPreference = 'SilentlyContinue'
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+
+#Verifying existing SCCM client
+$procCCMExec = Get-Process -Name ccmexec -ErrorAction SilentlyContinue
+write-host "=== Verifying SCCM client is already installed: ==="
+If ($procCCMExec -ne $null) {
+    write-host "  SCCM client is already installed on this device" -ForegroundColor Red
+    write-host "  Exiting script" -ForegroundColor Red
+    write-host ""
+    pause
+    exit
+} Else {
+    write-host "  SCCM client is not installed, continuing script" -ForegroundColor Green
 }
 
-# ── 2. Clear SCCM Reboot Management registry keys ──────────────────────────
-Write-Host "`n=== Clearing SCCM Reboot Management keys ===" -ForegroundColor Cyan
-
-$sccmRebootData = 'HKLM:\SOFTWARE\Microsoft\SMS\Mobile Client\Reboot Management\RebootData'
-if (Test-Path $sccmRebootData) {
-    Remove-Item -Path $sccmRebootData -Force -ErrorAction SilentlyContinue
-    Write-Host "  Removed: RebootData" -ForegroundColor Green
+#Verifying the computer is joined to Esri.com or UC.esri.com domain
+$domain = (gwmi win32_computersystem).domain
+write-host "=== Verifying domain join: ==="
+if (($domain -eq "esri.com") -or ($domain -eq "uc.esri.com")) {
+    write-host "  Device is joined to $domain" -ForegroundColor Green
 } else {
-    Write-Host "  RebootData key not found (already clear)" -ForegroundColor DarkGray
+    write-host "  Device is NOT joined to esri.com nor uc.esri.com!" -ForegroundColor Red
+	write-host "  Exiting script" -ForegroundColor Red
+    write-host ""
+    pause
+    exit
 }
 
-# ── 3. Clear SCCM Updates Reboot Status ────────────────────────────────────
-Write-Host "`n=== Clearing SCCM Updates Reboot Status ===" -ForegroundColor Cyan
-
-$sccmUpdatesReboot = 'HKLM:\SOFTWARE\Microsoft\SMS\Mobile Client\Updates Management\Handler\UpdatesRebootStatus'
-if (Test-Path $sccmUpdatesReboot) {
-    Remove-Item -Path "$sccmUpdatesReboot\*" -Force -ErrorAction SilentlyContinue
-    Write-Host "  Removed: UpdatesRebootStatus entries" -ForegroundColor Green
-} else {
-    Write-Host "  UpdatesRebootStatus key not found (already clear)" -ForegroundColor DarkGray
-}
-
-# ── 4. Clear Windows Update RebootRequired key ─────────────────────────────
-Write-Host "`n=== Clearing Windows Update RebootRequired ===" -ForegroundColor Cyan
-
-$wuRebootRequired = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired'
-if (Test-Path $wuRebootRequired) {
-    Remove-ItemProperty -Name * -Path $wuRebootRequired -Force -ErrorAction SilentlyContinue
-    Write-Host "  Cleared: RebootRequired properties" -ForegroundColor Green
-} else {
-    Write-Host "  RebootRequired key not found (already clear)" -ForegroundColor DarkGray
-}
-
-# ── 5. Clear Component Based Servicing (CBS) RebootPending ─────────────────
-Write-Host "`n=== Clearing CBS RebootPending ===" -ForegroundColor Cyan
-
-$cbsRebootPending = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending'
-if (Test-Path $cbsRebootPending) {
-    Remove-Item -Path $cbsRebootPending -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Host "  Removed: CBS RebootPending" -ForegroundColor Green
-} else {
-    Write-Host "  CBS RebootPending key not found (already clear)" -ForegroundColor DarkGray
-}
-
-$cbsPackagesPending = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\PackagesPending'
-if (Test-Path $cbsPackagesPending) {
-    Remove-Item -Path $cbsPackagesPending -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Host "  Removed: CBS PackagesPending" -ForegroundColor Green
-} else {
-    Write-Host "  CBS PackagesPending key not found (already clear)" -ForegroundColor DarkGray
-}
-
-# ── 6. Clear PendingFileRenameOperations ────────────────────────────────────
-Write-Host "`n=== Clearing PendingFileRenameOperations ===" -ForegroundColor Cyan
-
-$sessionMgr = 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'
-$pfro = (Get-ItemProperty -Path $sessionMgr -Name 'PendingFileRenameOperations' -ErrorAction SilentlyContinue)
-if ($pfro) {
-    Remove-ItemProperty -Path $sessionMgr -Name 'PendingFileRenameOperations' -Force -ErrorAction SilentlyContinue
-    Write-Host "  Removed: PendingFileRenameOperations" -ForegroundColor Green
-} else {
-    Write-Host "  PendingFileRenameOperations not found (already clear)" -ForegroundColor DarkGray
-}
-
-# ── 7. Cancel any pending shutdown ──────────────────────────────────────────
-Write-Host "`n=== Cancelling any scheduled shutdown ===" -ForegroundColor Cyan
-& shutdown.exe /a 2>$null
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "  Scheduled shutdown cancelled" -ForegroundColor Green
-} else {
-    Write-Host "  No scheduled shutdown to cancel" -ForegroundColor DarkGray
-}
-
-# ── 8. Restart the SCCM Client service ─────────────────────────────────────
-Write-Host "`n=== Restarting SCCM Client (CcmExec) ===" -ForegroundColor Cyan
-try {
-    Restart-Service -Name CcmExec -Force -ErrorAction Stop
-    Write-Host "  CcmExec service restarted successfully" -ForegroundColor Green
-} catch {
-    Write-Warning "  Could not restart CcmExec: $_"
-}
-
-# ── 9. Verify reboot status is cleared ──────────────────────────────────────
-Write-Host "`n=== Verifying pending reboot status ===" -ForegroundColor Cyan
-Start-Sleep -Seconds 5   # Allow service to fully restart
-
-try {
-    $verifyStatus = Invoke-CimMethod -Namespace root/ccm/ClientSDK `
-                        -ClassName CCM_ClientUtilities `
-                        -MethodName DetermineIfRebootPending -ErrorAction Stop
-    if ($verifyStatus.RebootPending -eq $false) {
-        Write-Host "  ✅ Pending reboot has been CLEARED successfully!" -ForegroundColor Green
+#Verifying the computer has a ConfigMgr certificate enrolled
+$templateName = 'ConfigMgr Client Certificate'
+$sccmcert = Get-ChildItem 'Cert:\LocalMachine\My' | Where-Object{ $_.Extensions | Where-Object{ ($_.Oid.FriendlyName -eq 'Certificate Template Information') -and ($_.Format(0) -match $templateName) }}
+write-host "=== Verifying ConfigMgr certificate: ==="
+if ($sccmcert -ne $null) {
+    if ($sccmcert.NotAfter -gt (Get-Date)) {
+        write-host "  Device has a valid ConfigMgr computer certificate" -ForegroundColor Green
     } else {
-        Write-Warning "  ⚠️ Reboot is still pending — a manual restart may be required."
+        $sccmcertdate = $sccmcert.NotAfter
+        write-host "  Device has a ConfigMgr computer certificate BUT the certificate is expired! ($sccmcertdate)" -ForegroundColor Red
     }
-} catch {
-    Write-Warning "  Could not verify reboot status via SCCM Client SDK."
+} else {
+    write-host "  Device does NOT have the correct computer certificate!" -ForegroundColor Red
+    write-host "  Please run certlm.msc and ensure the correct certificate is enrolled" -ForegroundColor Red
+	write-host "  Exiting script" -ForegroundColor Red
+    write-host ""
+    pause
+    exit
 }
 
-Write-Host "`nDone." -ForegroundColor Cyan
+#Verifying the computer has access to SCCM servers
+$CMGServer = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("ZXNyaWNtZy5lc3JpLmNvbQ=="))
+$SCCMServer = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("cmVkLWluZi1zY2NtLXAyLmVzcmkuY29t"))
+write-host "=== Verifying access to Cloud Management Gateway or internal SCCM server: ==="
+$CMGServerConnection = Test-NetConnection -ComputerName $CMGServer -Port 443 -InformationLevel quiet
+$SCCMServerConnection = Test-NetConnection -ComputerName $SCCMServer -Port 443 -InformationLevel quiet
+write-host "  Device access to CMG is $CMGServerConnection"
+write-host "  Device access to SCCM server is $SCCMServerConnection"
+
+If ($CMGServerConnection -eq $true) {
+	#Verifying ccmsetup.exe is in ccmsetup folder
+	$targetFolder = "$env:windir\ccmsetup"
+	$targetFile = Join-Path $targetFolder "ccmsetup.exe"
+	$sourceUrl = "https://github.com/bcheng-esri/EndpointManagement/raw/refs/heads/main/files/ccmsetup.exe"
+    write-host "=== Verifying ccmsetup.exe exists: ==="
+	# Check if the file exists, if not, download it
+	if (-not (Test-Path -Path $targetFile)) {
+		Write-Host "  ccmsetup.exe is missing. Attempting to download..." -ForegroundColor Yellow
+		# Ensure the folder exists
+		if (-not (Test-Path -Path $targetFolder)) {
+			New-Item -ItemType Directory -Path $targetFolder | Out-Null
+		}
+		try {
+			# Download the file
+			Invoke-WebRequest -Uri $sourceUrl -OutFile $targetFile -ErrorAction Stop
+			Write-Host "  Download complete. File saved to $targetFile" -ForegroundColor Green
+		} catch {
+			Write-Host "  Failed to download ccmsetup.exe from $sourceUrl. Please verify the URL and network connectivity." -ForegroundColor Red
+			Write-Host "  Exiting script" -ForegroundColor Red
+			Write-Host ""
+			pause
+			exit
+		}
+	} else {
+		Write-Host "  ccmsetup.exe already exists in $env:windir\ccmsetup. No action taken." -ForegroundColor Cyan
+	}
+    write-host "=== Device has internet access. Using Cloud Management Gateway for install ==="
+    $b64Args1 = "L25vY3JsY2hlY2sgL21wOmh0dHBzOi8vRVNSSUNNRy5FU1JJLkNPTS9DQ01fUHJveHlfTXV0dWFsQXV0aC83MjA1NzU5NDAzNzkyNzkzNyBDQ01IT1NUTkFNRT1FU1JJQ01HLkVTUkkuQ09NL0NDTV9Qcm94eV9NdXR1YWxBdXRoLzcyMDU3NTk0MDM3OTI3OTM3IFNNU1NpdGVDb2RlPVJFRA=="
+    $decodedArgs1 = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b64Args1))
+    Start-Process "$targetFolder\ccmsetup.exe" -ArgumentList $decodedArgs1 -Wait
+    do {
+	Start-Sleep 10
+	Write-host "=== Installing SCCM client over internet... ==="
+	$procCCMSetup = Get-Process -Name ccmsetup -ErrorAction SilentlyContinue
+	Start-Sleep 10
+	}
+	until ($procCCMSetup -eq $null)
+    Write-host -fore green "SCCM client install is successful."
+} ElseIf ($SCCMServerConnection -eq $true) {
+	#Verifying ccmsetup.exe is in ccmsetup folder
+	$targetFolder = "$env:windir\ccmsetup"
+	$targetFile = Join-Path $targetFolder "ccmsetup.exe"
+	$sourceUrl = "\\esri.com\software\Desktop\DesktopM-Z\Microsoft\SCCM\ccmsetup.exe"
+    write-host "=== Verifying ccmsetup.exe exists: ==="
+	#Check if the file exists, if not, download it
+	if (-not (Test-Path -Path $targetFile)) {
+		Write-Host "  ccmsetup.exe is missing. Attempting to copy..." -ForegroundColor Yellow
+		# Ensure the folder exists
+		if (-not (Test-Path -Path $targetFolder)) {
+			New-Item -ItemType Directory -Path $targetFolder | Out-Null
+		}
+		try {
+			# Copy the file
+			Copy-Item -Path $sourceUrl -Destination $targetFolder -ErrorAction Stop
+			Write-Host "  Copy complete. File saved to $targetFile" -ForegroundColor Green
+		} catch {
+			Write-Host "  Failed to copy ccmsetup.exe from $sourceUrl. Please verify the source and network connectivity." -ForegroundColor Red
+			Write-Host "  Exiting script" -ForegroundColor Red
+			Write-Host ""
+			pause
+			exit
+		}
+	} else {
+		Write-Host "  ccmsetup.exe already exists in $env:windir\ccmsetup. No action taken." -ForegroundColor Cyan
+	}
+    write-host "=== Device is on internal network only. Using internal management point for install ==="
+    $b64Args2 = "U01TU0lURUNPREU9UkVEIEZTUD1yZWQtaW5mLWNtZHAtcDEuZXNyaS5jb20gQ0NNRklSU1RDRVJUPTEgQ0NNQ0VSVFNUT1JFPU1ZIFNNU01QPWh0dHBzOi8vcmVkLWluZi1zY2NtLXAyLmVzcmkuY29tIC9NUDpodHRwczovL3JlZC1pbmYtc2NjbS1wMi5lc3JpLmNvbSAvVXNlUEtJQ2VydA=="
+    $decodedArgs2 = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($b64Args2))
+    Start-Process "$targetFolder\ccmsetup.exe" -ArgumentList $decodedArgs2 -Wait
+    do {
+	Start-Sleep 10
+	Write-host "  Installing SCCM client..."
+	$procCCMSetup = Get-Process -Name ccmsetup -ErrorAction SilentlyContinue
+	Start-Sleep 10
+	}
+	until ($procCCMSetup -eq $null)
+    Write-host "=== SCCM client install is successful." -ForegroundColor Green
+} Else {
+    write-host "=== Device cannot connect to neither the CMG nor internal servers. Please check the network connection! ===" -ForegroundColor Red
+}
+write-host ""
+write-host ""
+
+pause
