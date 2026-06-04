@@ -1,12 +1,14 @@
-# Invoke-SCCMClientActions
+# Endpoint Management
 
 A PowerShell script repository for Configuration Manager (SCCM/MECM)
 
 ## Scripts
 
-Install_SCCM_Client.ps1 | Installs the SCCM client
-Uninstall_SCCM_Client.ps1 | Uninstalls the SCCM client
-WindowsUpdate_Reset.ps1 | Fully resets Windows Updates components, files, and settings
+| Name | Function |
+| --- | --- |
+| Install_SCCM_Client.ps1 | Installs the SCCM client |
+| Uninstall_SCCM_Client.ps1 | Uninstalls the SCCM client |
+| WindowsUpdate_Reset.ps1 | Fully resets Windows Updates components, files, and settings |
 
 ## Requirements
 
