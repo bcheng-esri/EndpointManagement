@@ -20,13 +20,13 @@ A PowerShell script repository for Configuration Manager (SCCM/MECM)
 ## Usage
 
 ```powershell
-irm https://raw.githubusercontent.com/bcheng-esri/EndpointManagement/refs/heads/main/scripts/Install-SCCMClient.ps1 | iex | iex
+irm https://raw.githubusercontent.com/bcheng-esri/EndpointManagement/refs/heads/main/scripts/Install-SCCMClient.ps1 | iex
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/bcheng-esri/EndpointManagement/refs/heads/main/scripts/Uninstall-SCCMClient.ps1 | iex | iex
+irm https://raw.githubusercontent.com/bcheng-esri/EndpointManagement/refs/heads/main/scripts/Uninstall-SCCMClient.ps1 | iex
 ```
 
 ```powershell
-irm https://raw.githubusercontent.com/bcheng-esri/EndpointManagement/refs/heads/main/scripts/Reset-WindowsUpdate.ps1 | iex | iex
+irm https://raw.githubusercontent.com/bcheng-esri/EndpointManagement/refs/heads/main/scripts/Reset-WindowsUpdate.ps1 | iex
 ```
