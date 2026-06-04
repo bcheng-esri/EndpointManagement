@@ -1,19 +1,3 @@
-﻿<#
-.SYNOPSIS
-	This script is used to install the Esri SCCM client.
-
-.DESCRIPTION
-	This script will check if the device is on the internal or internet network.
-
-.PARAMETER
-
-.EXAMPLE
-
-.NOTES
-
-.LINK
-	
-#>
 #Execute script as administrator
 if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) { Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs; exit }
 $ProgressPreference = 'SilentlyContinue'
