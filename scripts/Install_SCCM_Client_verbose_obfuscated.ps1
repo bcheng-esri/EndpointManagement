@@ -26,6 +26,16 @@
 .LINK
 	
 #>
+$ProgressPreference = 'SilentlyContinue'
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+write-host ""
+
 #Execute script as administrator
 Write-Host "=== Checking if script executed as administrator ==="
 function Test-Admin {
@@ -39,16 +49,6 @@ if (-not (Test-Admin)) {
 } else {
     Write-Host "  Script elevated" -ForegroundColor DarkGray
 }
-
-$ProgressPreference = 'SilentlyContinue'
-write-host ""
-write-host ""
-write-host ""
-write-host ""
-write-host ""
-write-host ""
-write-host ""
-write-host ""
 
 #Verifying existing SCCM client
 $procCCMExec = Get-Process -Name ccmexec -ErrorAction SilentlyContinue
