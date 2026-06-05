@@ -26,7 +26,7 @@ function Test-Admin {
     return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 if (-not (Test-Admin)) {
-    Write-Warning "  ⚠️ This script must be run as Administrator. Aborting."
+    Write-Warning "  This script must be run as Administrator. Aborting."
 	write-host ""
     pause
     exit
@@ -35,7 +35,7 @@ if (-not (Test-Admin)) {
 }
 
 # -- Logging Setup --
-$LogFile = "$env:SystemRoot\Temp\WU_Reset_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
+$LogFile = "$env:SystemRoot\Temp\Reset-WindowsUpdate_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 if (!(Test-Path "$env:SystemRoot\Temp")) {
     New-Item -Path "$env:SystemRoot\Temp" -ItemType Directory -Force | Out-Null
 }
