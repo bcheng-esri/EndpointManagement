@@ -72,15 +72,17 @@ foreach ($path in $ccmsetupPaths) {
     if (Test-Path $path) {
         Write-Log "Found ccmsetup at: $path"
         try {
-            $process = Start-Process -FilePath $path -ArgumentList "/uninstall" -Wait -PassThru -NoNewWindow
+			Write-Log "Starting uninstall process..."
+            $process = Start-Process -FilePath $path -ArgumentList "/uninstall" -PassThru -NoNewWindow
+			do {
+			Start-Sleep 10
+			Write-Log "  Uninstalling SCCM client..." -Level "INFO"
+			$process = Get-Process -Name ccmsetup -ErrorAction SilentlyContinue
+			Start-Sleep 10
+			}
+			until ($process -eq $null)
             Write-Log "ccmsetup /uninstall exited with code: $($process.ExitCode)"
             $uninstallRan = $true
-            Write-Log "Waiting for ccmsetup process to fully complete..."
-            Start-Sleep -Seconds 30
-            while (Get-Process -Name ccmsetup -ErrorAction SilentlyContinue) {
-                Write-Log "ccmsetup still running, waiting..."
-                Start-Sleep -Seconds 10
-            }
             break
         }
         catch {
