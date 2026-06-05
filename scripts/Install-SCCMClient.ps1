@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 	This script is used to install the Esri SCCM client.
 
@@ -21,14 +21,30 @@
 
 #>
 $ProgressPreference = 'SilentlyContinue'
-write-host ""
-write-host ""
-write-host ""
-write-host ""
-write-host ""
-write-host ""
-write-host ""
-write-host ""
+Write-Host ""
+Write-Host ""
+Write-Host ""
+Write-Host ""
+Write-Host ""
+Write-Host ""
+Write-Host ""
+Write-Host ""
+
+# -- Check script execution elevation --
+Write-Host "=== Checking if script executed as administrator ==="
+function Test-Admin {
+    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $pr = New-Object System.Security.Principal.WindowsPrincipal($id)
+    return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+if (-not (Test-Admin)) {
+    Write-Warning "  ⚠ This script must be run as Administrator. Aborting."
+	Write-Host ""
+    pause
+	exit
+} else {
+    Write-Host "  Script elevated"
+}
 
 # -- Logging Setup --
 $LogFile = "$env:SystemRoot\Temp\Install-SCCMClient_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
@@ -51,40 +67,23 @@ function Write-Log {
     }
     Add-Content -Path $LogFile -Value $entry
 }
-
 Write-Log "Script started" -Level "INFO"
 Write-Log "Log file: $LogFile" -Level "INFO"
 
-#Execute script as administrator
-Write-Log "=== Checking if script executed as administrator ===" -Level "INFO"
-function Test-Admin {
-    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    $pr = New-Object System.Security.Principal.WindowsPrincipal($id)
-    return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-if (-not (Test-Admin)) {
-    Write-Log "  This script must be run as Administrator. Aborting." -Level "WARN"
-	write-host ""
-    pause
-	exit
-} else {
-    Write-Log "  Script elevated" -Level "INFO"
-}
-
-#Verifying existing SCCM client
+# -- Verifying existing SCCM client --
 $procCCMExec = Get-Process -Name ccmexec -ErrorAction SilentlyContinue
 Write-Log "=== Verifying SCCM client is already installed: ===" -Level "INFO"
 If ($procCCMExec -ne $null) {
     Write-Log "  SCCM client is already installed on this device" -Level "WARN"
     Write-Log "  Exiting script" -Level "WARN"
-    write-host ""
+    Write-Host ""
     pause
     exit
 } Else {
     Write-Log "  SCCM client is not installed, continuing script" -Level "SUCCESS"
 }
 
-#Verifying the computer is joined to Esri.com or UC.esri.com domain
+# -- Verifying the computer is joined to Esri.com or UC.esri.com domain --
 $domain = (gwmi win32_computersystem).domain
 Write-Log "=== Verifying domain join: ===" -Level "INFO"
 if (($domain -eq "esri.com") -or ($domain -eq "uc.esri.com")) {
@@ -92,12 +91,12 @@ if (($domain -eq "esri.com") -or ($domain -eq "uc.esri.com")) {
 } else {
     Write-Log "  Device is NOT joined to esri.com nor uc.esri.com!" -Level "ERROR"
 	Write-Log "  Exiting script" -Level "ERROR"
-    write-host ""
+    Write-Host ""
     pause
     exit
 }
 
-#Verifying the computer has a ConfigMgr certificate enrolled
+# -- Verifying the computer has a ConfigMgr certificate enrolled --
 $templateName = 'ConfigMgr Client Certificate'
 $sccmcert = Get-ChildItem 'Cert:\LocalMachine\My' | Where-Object{ $_.Extensions | Where-Object{ ($_.Oid.FriendlyName -eq 'Certificate Template Information') -and ($_.Format(0) -match $templateName) }}
 Write-Log "=== Verifying ConfigMgr certificate: ===" -Level "INFO"
@@ -112,12 +111,12 @@ if ($sccmcert -ne $null) {
     Write-Log "  Device does NOT have the correct computer certificate!" -Level "ERROR"
     Write-Log "  Please run certlm.msc and ensure the correct certificate is enrolled" -Level "ERROR"
 	Write-Log "  Exiting script" -Level "ERROR"
-    write-host ""
+    Write-Host ""
     pause
     exit
 }
 
-#Verifying the computer has access to SCCM servers
+# -- Verifying the computer has access to SCCM servers --
 $CMGServer = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("ZXNyaWNtZy5lc3JpLmNvbQ=="))
 $SCCMServer = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("cmVkLWluZi1zY2NtLXAyLmVzcmkuY29t"))
 Write-Log "=== Verifying access to Cloud Management Gateway or internal SCCM server: ===" -Level "INFO"
@@ -127,7 +126,7 @@ Write-Log "  Device access to CMG is $CMGServerConnection" -Level "INFO"
 Write-Log "  Device access to SCCM server is $SCCMServerConnection" -Level "INFO"
 
 If ($CMGServerConnection -eq $true) {
-	#Verifying ccmsetup.exe is in ccmsetup folder
+	# Verifying ccmsetup.exe is in ccmsetup folder
 	$targetFolder = "$env:windir\ccmsetup"
 	$targetFile = Join-Path $targetFolder "ccmsetup.exe"
 	$sourceUrl = "https://github.com/bcheng-esri/EndpointManagement/raw/refs/heads/main/files/ccmsetup.exe"
@@ -167,12 +166,12 @@ If ($CMGServerConnection -eq $true) {
 	}
 	until ($procCCMSetup -eq $null)
 } ElseIf ($SCCMServerConnection -eq $true) {
-	#Verifying ccmsetup.exe is in ccmsetup folder
+	# Verifying ccmsetup.exe is in ccmsetup folder
 	$targetFolder = "$env:windir\ccmsetup"
 	$targetFile = Join-Path $targetFolder "ccmsetup.exe"
 	$sourceUrl = "\\esri.com\software\Desktop\DesktopM-Z\Microsoft\SCCM\ccmsetup.exe"
     Write-Log "=== Verifying ccmsetup.exe exists: ===" -Level "INFO"
-	#Check if the file exists, if not, download it
+	# Check if the file exists, if not, download it
 	if (-not (Test-Path -Path $targetFile)) {
 		Write-Log "  ccmsetup.exe is missing. Attempting to copy..." -Level "WARN"
 		# Ensure the folder exists
@@ -210,7 +209,7 @@ If ($CMGServerConnection -eq $true) {
     Write-Log "=== Device cannot connect to neither the CMG nor internal servers. Please check the network connection! ===" -Level "ERROR"
 }
 
-#Retrieving the ccmsetup result from log file
+# -- Retrieving the ccmsetup result from log file --
 $ccmsetupLogFile = "$env:windir\ccmsetup\logs\ccmsetup.log"
 # Check if the file exists
 if (Test-Path -Path $ccmsetupLogFile) {
@@ -243,6 +242,6 @@ if (Test-Path -Path $ccmsetupLogFile) {
 }
 
 Write-Log "Script completed" -Level "INFO"
-write-host ""
-write-host ""
+Write-Host ""
+Write-Host ""
 pause

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Fully uninstalls the SCCM/ConfigMgr client and removes all related folders,
     registry keys, services, certificates, and WMI namespaces.
@@ -19,6 +19,22 @@
 	Version:      1.0
     
 #>
+# -- Check script execution elevation --
+Write-Host "=== Checking if script executed as administrator ==="
+function Test-Admin {
+    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+    $pr = New-Object System.Security.Principal.WindowsPrincipal($id)
+    return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+if (-not (Test-Admin)) {
+    Write-Warning "  ⚠ This script must be run as Administrator. Aborting."
+	Write-Host ""
+    pause
+	exit
+} else {
+    Write-Host "  Script elevated"
+}
+
 # -- Logging Setup --
 $LogFile = "$env:SystemRoot\Temp\Uninstall-SCCMClient_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
 if (!(Test-Path "$env:SystemRoot\Temp")) {
@@ -40,25 +56,8 @@ function Write-Log {
     }
     Add-Content -Path $LogFile -Value $entry
 }
-
 Write-Log "Script started" -Level "INFO"
 Write-Log "Log file: $LogFile" -Level "INFO"
-
-#Execute script as administrator
-Write-Log "=== Checking if script executed as administrator ===" -Level "INFO"
-function Test-Admin {
-    $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
-    $pr = New-Object System.Security.Principal.WindowsPrincipal($id)
-    return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-if (-not (Test-Admin)) {
-    Write-Log "  This script must be run as Administrator. Aborting." -Level "WARN"
-	write-host ""
-    pause
-	exit
-} else {
-    Write-Log "  Script elevated" -Level "INFO"
-}
 
 # -- Step 1: Run Official Uninstaller --
 Write-Log "Step 1: Running ccmsetup.exe /uninstall..."
