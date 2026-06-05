@@ -81,7 +81,7 @@ foreach ($path in $ccmsetupPaths) {
 			Start-Sleep 10
 			}
 			until ($process -eq $null)
-            Write-Log "ccmsetup /uninstall exited with code: $($uninstallProcess.ExitCode)"
+            #Write-Log "ccmsetup /uninstall exited with code: $($uninstallProcess.ExitCode)"
             $uninstallRan = $true
             break
         }
