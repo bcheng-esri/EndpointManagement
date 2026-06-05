@@ -166,7 +166,6 @@ If ($CMGServerConnection -eq $true) {
 	Start-Sleep 10
 	}
 	until ($procCCMSetup -eq $null)
-    Write-Log "SCCM client install is successful." -Level "SUCCESS"
 } ElseIf ($SCCMServerConnection -eq $true) {
 	#Verifying ccmsetup.exe is in ccmsetup folder
 	$targetFolder = "$env:windir\ccmsetup"
@@ -207,13 +206,43 @@ If ($CMGServerConnection -eq $true) {
 	Start-Sleep 10
 	}
 	until ($procCCMSetup -eq $null)
-    Write-Log "=== SCCM client install is successful." -Level "SUCCESS"
 } Else {
     Write-Log "=== Device cannot connect to neither the CMG nor internal servers. Please check the network connection! ===" -Level "ERROR"
+}
+
+#Retrieving the ccmsetup result from log file
+$ccmsetupLogFile = "$env:windir\ccmsetup\logs\ccmsetup.log"
+# Check if the file exists
+if (Test-Path -Path $ccmsetupLogFile) {
+	# Read the file and find the last line matching either pattern
+	$matchLine = Get-Content -Path $ccmsetupLogFile | Where-Object {
+		$_ -match "CcmSetup failed" -or $_ -match "CcmSetup is exiting"
+	} | Select-Object -Last 1
+	if ($matchLine) {
+		# Extract the readable message from SCCM log format
+		if ($matchLine -match '<!\[LOG\[(.*?)\]LOG\]') {
+			$message = $Matches[1]
+		} else {
+			$message = $matchLine
+		}
+		# Determine the status based on the message content
+		if ($message -eq "CcmSetup is exiting with return code 0") {
+			$color = "SUCCESS"
+		} elseif ($message -match "CcmSetup failed") {
+			$color = "ERROR"
+		} else {
+			$color = "WARN"
+		}
+		Write-Log "  CCMSetup result:" -Level "INFO"
+		Write-Log (" ", $message) -Level $color
+	} else {
+		Write-Log "  No lines matching 'CcmSetup failed' or 'CcmSetup is exiting' were found." -Level "WARN"
+	}
+} else {
+	Write-Log "  Log file not found: $ccmsetupLogFile" -Level "ERROR"
 }
 
 Write-Log "Script completed" -Level "INFO"
 write-host ""
 write-host ""
-
 pause
