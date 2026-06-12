@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     SCCM / ConfigMgr Software Center health check and self-healing script.
 

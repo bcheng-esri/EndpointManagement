@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Fully uninstalls the SCCM/ConfigMgr client and removes all related folders,
     registry keys, services, certificates, and WMI namespaces.
@@ -27,7 +27,7 @@ function Test-Admin {
     return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 if (-not (Test-Admin)) {
-    Write-Warning "  ⚠ This script must be run as Administrator. Aborting."
+    Write-Warning "  This script must be run as Administrator. Aborting."
 	Write-Host ""
     pause
 	exit

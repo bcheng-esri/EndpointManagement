@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
 	This script is used to install the Esri SCCM client.
 
@@ -38,7 +38,7 @@ function Test-Admin {
     return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 if (-not (Test-Admin)) {
-    Write-Warning "  ⚠ This script must be run as Administrator. Aborting."
+    Write-Warning "  This script must be run as Administrator. Aborting."
 	Write-Host ""
     pause
 	exit

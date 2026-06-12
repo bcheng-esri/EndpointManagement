@@ -16,7 +16,7 @@ function Test-Admin {
     return $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
 }
 if (-not (Test-Admin)) {
-    Write-Warning "  ⚠️ This script must be run as Administrator. Aborting."
+    Write-Warning "  This script must be run as Administrator. Aborting."
     exit
 } else {
     Write-Host "  Script elevated" -ForegroundColor DarkGray
